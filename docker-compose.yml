@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  browserless:
+    image: ghcr.io/browserless/chromium:latest
+    container_name: browserless
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # === 인증 설정 ===
+      - TOKEN=${BROWSERLESS_TOKEN}
+      
+      # === 성능 설정 ===
+      - CONCURRENT=${CONCURRENT:-5}          # 동시 세션 수 (RTX 4090 메모리 여유 있으면 늘려도 됨)
+      - QUEUED=${QUEUED:-10}                 # 대기열 크기
+      - TIMEOUT=${TIMEOUT:-60000}            # 세션 타임아웃 (60초)
+      
+      # === 리소스 제한 ===
+      - MAX_CPU_PERCENT=${MAX_CPU:-80}       # CPU 사용률 제한
+      - MAX_MEMORY_PERCENT=${MAX_MEMORY:-80} # 메모리 사용률 제한
+      
+      # === CORS 설정 (n8n/Activepieces 접속용) ===
+      - CORS=true
+      - CORS_ALLOW_ORIGIN=*
+      - CORS_ALLOW_METHODS=OPTIONS, POST, GET
+      
+      # === 네트워크 설정 ===
+      - EXTERNAL=${EXTERNAL_URL:-}           # 외부 접속 URL (Tailscale)
+      
+      # === 기타 설정 ===
+      - ALLOW_GET=true                       # GET 요청 허용 (테스트용)
+      - ENABLE_DEBUGGER=true                 # 디버거 UI 활성화
+      - HEALTH=true                          # 헬스체크 활성화
+      
+      # === 디버그 (필요시 활성화) ===
+      # - DEBUG=browserless*
+    
+    volumes:
+      # 다운로드 디렉토리 (선택사항)
+      - ./downloads:/tmp/browserless-download-dirs
+      # 데이터 디렉토리 (선택사항)
+      - ./data:/tmp/browserless-data-dirs
+    
+    # 메모리 제한 (시스템에 맞게 조정)
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+    
+    # 헬스체크
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # === 옵션: Firefox 지원이 필요한 경우 ===
+  # browserless-firefox:
+  #   image: ghcr.io/browserless/firefox:latest
+  #   container_name: browserless-firefox
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3001:3000"
+  #   environment:
+  #     - TOKEN=${BROWSERLESS_TOKEN}
+  #     - CONCURRENT=3
+  #     - TIMEOUT=60000
+  #     - CORS=true
+
+  # === 옵션: Multi-browser (Chrome + Firefox + WebKit) ===
+  # browserless-multi:
+  #   image: ghcr.io/browserless/multi:latest
+  #   container_name: browserless-multi
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3002:3000"
+  #   environment:
+  #     - TOKEN=${BROWSERLESS_TOKEN}
+  #     - CONCURRENT=3
+  #     - TIMEOUT=60000
+  #     - CORS=true
