@@ -26,7 +26,7 @@ services:
       - CORS_ALLOW_METHODS=OPTIONS, POST, GET
       
       # === 네트워크 설정 ===
-      - EXTERNAL=${EXTERNAL_URL:-}           # 외부 접속 URL (Tailscale)
+      # - EXTERNAL=
       
       # === 기타 설정 ===
       - ALLOW_GET=true                       # GET 요청 허용 (테스트용)
